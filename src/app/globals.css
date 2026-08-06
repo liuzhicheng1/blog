@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #1e293b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Prose styles for markdown */
+.prose pre {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.prose pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.prose img {
+  border-radius: 0.5rem;
+  max-width: 100%;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 1rem;
+  text-align: left;
+}
+
+.prose th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+}
+
+.prose h1 { font-size: 2rem; margin-top: 2rem; margin-bottom: 1rem; }
+.prose h2 { font-size: 1.5rem; margin-top: 1.75rem; margin-bottom: 0.75rem; }
+.prose h3 { font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+.prose p { margin-bottom: 1rem; line-height: 1.75; }
+.prose ul, .prose ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+.prose li { margin-bottom: 0.25rem; }
+.prose blockquote { border-left: 4px solid #3b82f6; padding-left: 1rem; margin: 1rem 0; }
+.prose a { color: #2563eb; text-decoration: underline; }
+.prose a:hover { color: #1d4ed8; }
+.prose hr { border: none; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
+
+/* Line clamp utility */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
