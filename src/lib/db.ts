@@ -2,11 +2,15 @@ import { neon } from '@neondatabase/serverless';
 
 let _sql: any = null;
 
-function sql(strings: TemplateStringsArray, ...values: any[]) {
+function getSql() {
   if (!_sql) {
     _sql = neon(process.env.DATABASE_URL!);
   }
-  return _sql(strings, ...values) as any;
+  return _sql;
+}
+
+function sql(strings: TemplateStringsArray, ...values: any[]) {
+  return getSql()(strings, ...values) as any;
 }
 
 // --- Helpers ---
@@ -474,7 +478,7 @@ export async function updateLink(id: number, data: { name?: string; url?: string
   if (data.sort_order !== undefined) { sets.push('sort_order'); values.push(data.sort_order); }
   if (sets.length === 0) return;
   const setClause = sets.map((s, i) => `${s} = $${i + 1}`).join(', ');
-  await sql.query(`UPDATE links SET ${setClause} WHERE id = $${sets.length + 1}`, [...values, id]);
+  await getSql().query(`UPDATE links SET ${setClause} WHERE id = $${sets.length + 1}`, [...values, id]);
 }
 
 export async function deleteLink(id: number) {
@@ -521,7 +525,7 @@ export async function updateProject(id: number, data: { name?: string; url?: str
   if (data.sort_order !== undefined) { sets.push('sort_order'); values.push(data.sort_order); }
   if (sets.length === 0) return;
   const setClause = sets.map((s, i) => `${s} = $${i + 1}`).join(', ');
-  await sql.query(`UPDATE projects SET ${setClause} WHERE id = $${sets.length + 1}`, [...values, id]);
+  await getSql().query(`UPDATE projects SET ${setClause} WHERE id = $${sets.length + 1}`, [...values, id]);
 }
 
 export async function deleteProject(id: number) {
