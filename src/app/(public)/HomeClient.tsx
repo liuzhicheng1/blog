@@ -89,7 +89,7 @@ export default function HomeClient({
             <Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>标签</Title>
             <Space size={4} wrap>
               {tags.map((tag) => (
-                <TagBadge key={tag.id} name={tag.name} slug={tag.slug} />
+                <TagBadge key={tag.slug} name={tag.name} slug={tag.slug} />
               ))}
             </Space>
             {tags.length === 0 && (
