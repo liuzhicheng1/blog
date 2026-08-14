@@ -1,16 +1,13 @@
 import Link from 'next/link';
+import { Tag } from 'antd';
 
-export default function TagBadge({ name, active = false }: { name: string; active?: boolean }) {
+export default function TagBadge({ name, slug, active = false }: { name: string; slug?: string; active?: boolean }) {
+  const href = slug ? `/tag/${slug}` : `/tag/${name}`;
   return (
-    <Link
-      href={`/tag/${name}`}
-      className={`inline-block px-3 py-1 text-xs rounded-full transition-colors ${
-        active
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700'
-      }`}
-    >
-      {name}
+    <Link href={href}>
+      <Tag color={active ? 'blue' : undefined} className="!m-0 !px-3 !py-0.5 cursor-pointer">
+        {name}
+      </Tag>
     </Link>
   );
 }

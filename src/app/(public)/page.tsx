@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { Button, Empty, Pagination, Space } from 'antd';
+import Title from 'antd/es/typography/Title';
+import Text from 'antd/es/typography/Text';
 import ArticleCard from '@/components/ArticleCard';
 import TagBadge from '@/components/TagBadge';
 import { getArticles, getAllTags } from '@/lib/db';
@@ -17,18 +20,17 @@ export default async function HomePage({
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex gap-8">
         {/* Main content */}
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold mb-8">最新文章</h1>
+        <div className="flex-1 min-w-0">
+          <Title level={2} style={{ marginBottom: 32 }}>最新文章</Title>
 
           {articles.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <p className="text-lg">还没有文章</p>
-              <Link href="/admin/articles/new" className="text-blue-600 hover:underline mt-2 inline-block">
-                去写第一篇 →
+            <Empty description="还没有文章">
+              <Link href="/admin/articles/new">
+                <Button type="primary">去写第一篇 →</Button>
               </Link>
-            </div>
+            </Empty>
           ) : (
-            <div className="space-y-6">
+            <Space direction="vertical" size={16} className="w-full">
               {articles.map((article) => (
                 <ArticleCard
                   key={article.id}
@@ -37,50 +39,48 @@ export default async function HomePage({
                   excerpt={article.excerpt}
                   created_at={article.created_at}
                   tags={article.tags}
+                  tagList={article.tagList}
                 />
               ))}
-            </div>
+            </Space>
           )}
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-8">
-              {page > 1 && (
-                <Link
-                  href={`/?page=${page - 1}`}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  上一页
-                </Link>
-              )}
-              <span className="px-4 py-2 text-gray-500">
-                第 {page} / {totalPages} 页
-              </span>
-              {page < totalPages && (
-                <Link
-                  href={`/?page=${page + 1}`}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  下一页
-                </Link>
-              )}
+            <div className="flex justify-center mt-8">
+              <Pagination
+                current={page}
+                total={totalPages * 10}
+                pageSize={10}
+                showSizeChanger={false}
+                itemRender={(current, type, originalElement) => {
+                  if (type === 'page') {
+                    return <Link href={`/?page=${current}`}>{current}</Link>;
+                  }
+                  if (type === 'prev') {
+                    return <Link href={`/?page=${Math.max(page - 1, 1)}`}>{originalElement}</Link>;
+                  }
+                  if (type === 'next') {
+                    return <Link href={`/?page=${Math.min(page + 1, totalPages)}`}>{originalElement}</Link>;
+                  }
+                  return originalElement;
+                }}
+              />
             </div>
           )}
         </div>
 
         {/* Sidebar */}
-        <aside className="w-56 shrink-0">
+        <aside className="w-56 shrink-0 hidden md:block">
           <div className="sticky top-20">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              标签
-            </h3>
-            <div className="flex flex-wrap gap-2">
+            <Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>标签</Title>
+            <Space size={4} wrap>
               {tags.map((tag) => (
-                <TagBadge key={tag.id} name={tag.name} />
+                <TagBadge key={tag.id} name={tag.name} slug={tag.slug} />
               ))}
-            </div>
+            </Space>
             {tags.length === 0 && (
-              <p className="text-sm text-gray-400">暂无标签</p>
+              <Text type="secondary">暂无标签</Text>
             )}
           </div>
         </aside>

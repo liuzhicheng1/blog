@@ -18,11 +18,11 @@ export default async function ArticlePage({
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Back link */}
       <Link
         href="/"
-        className="text-sm text-gray-400 hover:text-gray-600 transition-colors mb-6 inline-block"
+        className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors mb-6 inline-block"
       >
         ← 返回首页
       </Link>
@@ -30,12 +30,12 @@ export default async function ArticlePage({
       {/* Header */}
       <header className="mb-8">
         <div className="flex flex-wrap gap-2 mb-4">
-          {article.tags.map((tag) => (
-            <TagBadge key={tag} name={tag} />
+          {(article.tagList || article.tags.map((t: string) => ({ name: t, slug: t }))).map((tag) => (
+            <TagBadge key={tag.name} name={tag.name} slug={tag.slug} />
           ))}
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">{article.title}</h1>
-        <time className="text-gray-400">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">{article.title}</h1>
+        <time className="text-gray-400 dark:text-gray-500">
           {new Date(article.created_at).toLocaleDateString('zh-CN', {
             year: 'numeric',
             month: 'long',
@@ -44,7 +44,7 @@ export default async function ArticlePage({
         </time>
       </header>
 
-      {/* Content */}
+      {/* Content with TOC */}
       <MarkdownRenderer content={article.content} />
 
       {/* Comments */}

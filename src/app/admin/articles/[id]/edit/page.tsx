@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import ImageUploader from '@/components/ImageUploader';
 
 export default function EditArticlePage() {
   const router = useRouter();
@@ -17,6 +18,46 @@ export default function EditArticlePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertAtCursor = useCallback((text: string) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const newContent = content.slice(0, start) + text + content.slice(end);
+    setContent(newContent);
+    setTimeout(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + text.length;
+    }, 0);
+  }, [content]);
+
+  const handleImageUploaded = useCallback((url: string) => {
+    insertAtCursor(`![image](${url})`);
+  }, [insertAtCursor]);
+
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await fetch('/api/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (res.ok) insertAtCursor(`![image](${data.url})`);
+          else alert(data.error || '上传失败');
+        } catch {
+          alert('上传失败');
+        }
+      }
+    }
+  }, [insertAtCursor]);
 
   useEffect(() => {
     async function loadArticle() {
@@ -31,7 +72,7 @@ export default function EditArticlePage() {
         setContent(data.article.content);
         setExcerpt(data.article.excerpt || '');
         setTags(data.article.tags || []);
-        setPublished(data.article.published === 1);
+        setPublished(!!data.article.published);
       } catch {
         setError('加载失败');
       } finally {
@@ -141,11 +182,16 @@ export default function EditArticlePage() {
             内容 <span className="text-gray-400 font-normal">(Markdown)</span>
           </label>
           <textarea
+            ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            onPaste={handlePaste}
             rows={20}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
           />
+          <div className="mt-2">
+            <ImageUploader onImageUploaded={handleImageUploaded} />
+          </div>
         </div>
 
         <div>

@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthFromCookie } from '@/lib/auth';
 import { getArticleById, updateArticle, deleteArticle } from '@/lib/db';
 
-// GET /api/articles/[id] — public, get single article
+// GET /api/articles/[id] — public, get single article (published only)
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const article = await getArticleById(parseInt(id, 10));
-  if (!article) {
+  if (!article || !article.published) {
     return NextResponse.json({ error: '文章不存在' }, { status: 404 });
   }
   return NextResponse.json({ article });

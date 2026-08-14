@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import ImageUploader from '@/components/ImageUploader';
 
 export default function NewArticlePage() {
   const router = useRouter();
@@ -13,6 +14,48 @@ export default function NewArticlePage() {
   const [published, setPublished] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertAtCursor = useCallback((text: string) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const newContent = content.slice(0, start) + text + content.slice(end);
+    setContent(newContent);
+    // 恢复光标位置
+    setTimeout(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + text.length;
+    }, 0);
+  }, [content]);
+
+  const handleImageUploaded = useCallback((url: string) => {
+    insertAtCursor(`![image](${url})`);
+  }, [insertAtCursor]);
+
+  // 粘贴图片
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await fetch('/api/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (res.ok) insertAtCursor(`![image](${data.url})`);
+          else alert(data.error || '上传失败');
+        } catch {
+          alert('上传失败');
+        }
+      }
+    }
+  }, [insertAtCursor]);
 
   const addTag = () => {
     const trimmed = tagInput.trim();
@@ -96,12 +139,17 @@ export default function NewArticlePage() {
             内容 <span className="text-gray-400 font-normal">(Markdown)</span>
           </label>
           <textarea
+            ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            onPaste={handlePaste}
             rows={20}
             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-            placeholder="使用 Markdown 格式书写..."
+            placeholder="使用 Markdown 格式书写...&#10;支持直接粘贴截图"
           />
+          <div className="mt-2">
+            <ImageUploader onImageUploaded={handleImageUploaded} />
+          </div>
         </div>
 
         <div>

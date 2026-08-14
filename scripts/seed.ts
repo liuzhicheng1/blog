@@ -54,6 +54,29 @@ async function main() {
     );
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS links (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS projects (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      url TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      tech_stack TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `;
+
   console.log('✅ Database tables created');
 
   // Create admin user

@@ -1,8 +1,20 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { Layout, Menu } from 'antd';
+import Title from 'antd/es/typography/Title';
+import Text from 'antd/es/typography/Text';
+import {
+  FileTextOutlined,
+  EditOutlined,
+  LinkOutlined,
+  ProjectOutlined,
+  HomeOutlined,
+} from '@ant-design/icons';
 import { verifyToken } from '@/lib/auth';
 import LogoutButton from './LogoutButton';
+
+const { Sider, Content } = Layout;
 
 export default async function AdminLayout({
   children,
@@ -21,48 +33,31 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
+  const menuItems = [
+    { key: '/admin', icon: <FileTextOutlined />, label: <Link href="/admin">文章列表</Link> },
+    { key: '/admin/articles/new', icon: <EditOutlined />, label: <Link href="/admin/articles/new">写文章</Link> },
+    { type: 'divider' as const },
+    { key: '/admin/links', icon: <LinkOutlined />, label: <Link href="/admin/links">友链管理</Link> },
+    { key: '/admin/projects', icon: <ProjectOutlined />, label: <Link href="/admin/projects">项目管理</Link> },
+    { type: 'divider' as const },
+    { key: 'blog', icon: <HomeOutlined />, label: <Link href="/" target="_blank">查看博客 →</Link> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-gray-200 shrink-0 flex flex-col">
-        <div className="p-4 border-b border-gray-100">
-          <Link href="/admin" className="text-lg font-bold text-gray-900">
-            管理后台
-          </Link>
-          <p className="text-xs text-gray-400 mt-1">{payload.username}</p>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider width={220} theme="light" breakpoint="lg" collapsedWidth={0}>
+        <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0' }}>
+          <Title level={5} style={{ margin: 0 }}>管理后台</Title>
+          <Text type="secondary" style={{ fontSize: 12 }}>{payload.username}</Text>
         </div>
-
-        <nav className="flex-1 p-4 space-y-1">
-          <Link
-            href="/admin"
-            className="block px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            文章列表
-          </Link>
-          <Link
-            href="/admin/articles/new"
-            className="block px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            写文章
-          </Link>
-          <Link
-            href="/"
-            className="block px-3 py-2 text-sm text-gray-400 rounded-lg hover:bg-gray-100 transition-colors"
-            target="_blank"
-          >
-            查看博客 →
-          </Link>
-        </nav>
-
-        <div className="p-4 border-t border-gray-100">
+        <Menu mode="inline" defaultSelectedKeys={['/admin']} items={menuItems} style={{ borderInlineEnd: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, width: '100%', padding: '16px', borderTop: '1px solid #f0f0f0' }}>
           <LogoutButton />
         </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 p-8">
+      </Sider>
+      <Content style={{ padding: 24 }}>
         {children}
-      </main>
-    </div>
+      </Content>
+    </Layout>
   );
 }

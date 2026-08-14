@@ -72,6 +72,27 @@ export async function initSchema() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS links (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS projects (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      url TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      tech_stack TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `;
 }
 
 // --- User ---
@@ -103,8 +124,14 @@ export interface Article {
   updated_at: string;
 }
 
+export interface TagInfo {
+  name: string;
+  slug: string;
+}
+
 export interface ArticleWithTags extends Article {
   tags: string[];
+  tagList?: TagInfo[];
 }
 
 export async function getArticles(page: number = 1, limit: number = 10, tag?: string) {
@@ -123,7 +150,9 @@ export async function getArticles(page: number = 1, limit: number = 10, tag?: st
       )
     `;
     articles = await sql`
-      SELECT a.*, STRING_AGG(t.name, ',') as tag_names
+      SELECT a.*,
+        STRING_AGG(t.name, ',') as tag_names,
+        STRING_AGG(t.slug, ',') as tag_slugs
       FROM articles a
       LEFT JOIN article_tags at ON a.id = at.article_id
       LEFT JOIN tags t ON at.tag_id = t.id
@@ -139,7 +168,9 @@ export async function getArticles(page: number = 1, limit: number = 10, tag?: st
   } else {
     countResult = await sql`SELECT COUNT(*) as total FROM articles WHERE published = true`;
     articles = await sql`
-      SELECT a.*, STRING_AGG(t.name, ',') as tag_names
+      SELECT a.*,
+        STRING_AGG(t.name, ',') as tag_names,
+        STRING_AGG(t.slug, ',') as tag_slugs
       FROM articles a
       LEFT JOIN article_tags at ON a.id = at.article_id
       LEFT JOIN tags t ON at.tag_id = t.id
@@ -151,11 +182,17 @@ export async function getArticles(page: number = 1, limit: number = 10, tag?: st
   }
 
   const total = parseInt(countResult[0].total, 10);
-  const formatted = articles.map((a: any) => ({
-    ...a,
-    tags: a.tag_names ? a.tag_names.split(',') : [],
-    tag_names: undefined,
-  }));
+  const formatted = articles.map((a: any) => {
+    const names = a.tag_names ? a.tag_names.split(',') : [];
+    const slugs = a.tag_slugs ? a.tag_slugs.split(',') : [];
+    return {
+      ...a,
+      tags: names,
+      tagList: names.map((name: string, i: number) => ({ name, slug: slugs[i] || slugify(name) })),
+      tag_names: undefined,
+      tag_slugs: undefined,
+    };
+  });
 
   return {
     articles: formatted as ArticleWithTags[],
@@ -167,7 +204,9 @@ export async function getArticles(page: number = 1, limit: number = 10, tag?: st
 
 export async function getArticleBySlug(slug: string) {
   const rows = await sql`
-    SELECT a.*, STRING_AGG(t.name, ',') as tag_names
+    SELECT a.*,
+      STRING_AGG(t.name, ',') as tag_names,
+      STRING_AGG(t.slug, ',') as tag_slugs
     FROM articles a
     LEFT JOIN article_tags at ON a.id = at.article_id
     LEFT JOIN tags t ON at.tag_id = t.id
@@ -177,16 +216,22 @@ export async function getArticleBySlug(slug: string) {
 
   if (rows.length === 0) return null;
   const article = rows[0] as any;
+  const names = article.tag_names ? article.tag_names.split(',') : [];
+  const slugs = article.tag_slugs ? article.tag_slugs.split(',') : [];
   return {
     ...article,
-    tags: article.tag_names ? article.tag_names.split(',') : [],
+    tags: names,
+    tagList: names.map((name: string, i: number) => ({ name, slug: slugs[i] || slugify(name) })),
     tag_names: undefined,
+    tag_slugs: undefined,
   } as ArticleWithTags;
 }
 
 export async function getArticleById(id: number) {
   const rows = await sql`
-    SELECT a.*, STRING_AGG(t.name, ',') as tag_names
+    SELECT a.*,
+      STRING_AGG(t.name, ',') as tag_names,
+      STRING_AGG(t.slug, ',') as tag_slugs
     FROM articles a
     LEFT JOIN article_tags at ON a.id = at.article_id
     LEFT JOIN tags t ON at.tag_id = t.id
@@ -196,10 +241,14 @@ export async function getArticleById(id: number) {
 
   if (rows.length === 0) return null;
   const article = rows[0] as any;
+  const names = article.tag_names ? article.tag_names.split(',') : [];
+  const slugs = article.tag_slugs ? article.tag_slugs.split(',') : [];
   return {
     ...article,
-    tags: article.tag_names ? article.tag_names.split(',') : [],
+    tags: names,
+    tagList: names.map((name: string, i: number) => ({ name, slug: slugs[i] || slugify(name) })),
     tag_names: undefined,
+    tag_slugs: undefined,
   } as ArticleWithTags;
 }
 
@@ -309,7 +358,9 @@ export async function getAllArticlesForAdmin(page: number = 1, limit: number = 2
   const total = parseInt(countResult[0].total, 10);
 
   const articles = await sql`
-    SELECT a.*, STRING_AGG(t.name, ',') as tag_names
+    SELECT a.*,
+      STRING_AGG(t.name, ',') as tag_names,
+      STRING_AGG(t.slug, ',') as tag_slugs
     FROM articles a
     LEFT JOIN article_tags at ON a.id = at.article_id
     LEFT JOIN tags t ON at.tag_id = t.id
@@ -318,11 +369,17 @@ export async function getAllArticlesForAdmin(page: number = 1, limit: number = 2
     LIMIT ${limit} OFFSET ${offset}
   `;
 
-  const formatted = articles.map((a: any) => ({
-    ...a,
-    tags: a.tag_names ? a.tag_names.split(',') : [],
-    tag_names: undefined,
-  }));
+  const formatted = articles.map((a: any) => {
+    const names = a.tag_names ? a.tag_names.split(',') : [];
+    const slugs = a.tag_slugs ? a.tag_slugs.split(',') : [];
+    return {
+      ...a,
+      tags: names,
+      tagList: names.map((name: string, i: number) => ({ name, slug: slugs[i] || slugify(name) })),
+      tag_names: undefined,
+      tag_slugs: undefined,
+    };
+  });
 
   return {
     articles: formatted as ArticleWithTags[],
@@ -336,12 +393,12 @@ export async function getAllArticlesForAdmin(page: number = 1, limit: number = 2
 
 export async function getAllTags() {
   const rows = await sql`
-    SELECT t.*, COUNT(at.article_id)::int as article_count
+    SELECT t.*, COUNT(a.id)::int as article_count
     FROM tags t
     LEFT JOIN article_tags at ON t.id = at.tag_id
     LEFT JOIN articles a ON at.article_id = a.id AND a.published = true
     GROUP BY t.id
-    HAVING COUNT(at.article_id) > 0
+    HAVING COUNT(a.id) > 0
     ORDER BY article_count DESC
   `;
   return rows as { id: number; name: string; slug: string; article_count: number }[];
@@ -377,4 +434,96 @@ export async function createComment(articleId: number, authorName: string, conte
     content,
     created_at: result[0].created_at,
   };
+}
+
+// --- Links (友链) ---
+
+export interface LinkItem {
+  id: number;
+  name: string;
+  url: string;
+  description: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export async function getLinks() {
+  const rows = await sql`
+    SELECT * FROM links ORDER BY sort_order ASC, created_at DESC
+  `;
+  return rows as LinkItem[];
+}
+
+export async function createLink(data: { name: string; url: string; description?: string }) {
+  const { name, url, description = '' } = data;
+  const maxOrder = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM links`;
+  const result = await sql`
+    INSERT INTO links (name, url, description, sort_order)
+    VALUES (${name}, ${url}, ${description}, ${maxOrder[0].next_order})
+    RETURNING id
+  `;
+  return result[0].id as number;
+}
+
+export async function updateLink(id: number, data: { name?: string; url?: string; description?: string; sort_order?: number }) {
+  const sets: string[] = [];
+  const values: any[] = [];
+  if (data.name !== undefined) { sets.push('name'); values.push(data.name); }
+  if (data.url !== undefined) { sets.push('url'); values.push(data.url); }
+  if (data.description !== undefined) { sets.push('description'); values.push(data.description); }
+  if (data.sort_order !== undefined) { sets.push('sort_order'); values.push(data.sort_order); }
+  if (sets.length === 0) return;
+  const setClause = sets.map((s, i) => `${s} = $${i + 1}`).join(', ');
+  await sql.query(`UPDATE links SET ${setClause} WHERE id = $${sets.length + 1}`, [...values, id]);
+}
+
+export async function deleteLink(id: number) {
+  await sql`DELETE FROM links WHERE id = ${id}`;
+}
+
+// --- Projects (作品集) ---
+
+export interface ProjectItem {
+  id: number;
+  name: string;
+  url: string;
+  description: string;
+  tech_stack: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export async function getProjects() {
+  const rows = await sql`
+    SELECT * FROM projects ORDER BY sort_order ASC, created_at DESC
+  `;
+  return rows as ProjectItem[];
+}
+
+export async function createProject(data: { name: string; url?: string; description?: string; tech_stack?: string }) {
+  const { name, url = '', description = '', tech_stack = '' } = data;
+  const maxOrder = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM projects`;
+  const result = await sql`
+    INSERT INTO projects (name, url, description, tech_stack, sort_order)
+    VALUES (${name}, ${url}, ${description}, ${tech_stack}, ${maxOrder[0].next_order})
+    RETURNING id
+  `;
+  return result[0].id as number;
+}
+
+export async function updateProject(id: number, data: { name?: string; url?: string; description?: string; tech_stack?: string; sort_order?: number }) {
+  const sets: string[] = [];
+  const values: any[] = [];
+  if (data.name !== undefined) { sets.push('name'); values.push(data.name); }
+  if (data.url !== undefined) { sets.push('url'); values.push(data.url); }
+  if (data.description !== undefined) { sets.push('description'); values.push(data.description); }
+  if (data.tech_stack !== undefined) { sets.push('tech_stack'); values.push(data.tech_stack); }
+  if (data.sort_order !== undefined) { sets.push('sort_order'); values.push(data.sort_order); }
+  if (sets.length === 0) return;
+  const setClause = sets.map((s, i) => `${s} = $${i + 1}`).join(', ');
+  await sql.query(`UPDATE projects SET ${setClause} WHERE id = $${sets.length + 1}`, [...values, id]);
+}
+
+export async function deleteProject(id: number) {
+  await sql`DELETE FROM projects WHERE id = ${id}`;
 }
