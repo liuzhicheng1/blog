@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthFromCookie } from '@/lib/auth';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import crypto from 'crypto';
+import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   const user = await getAuthFromCookie();
@@ -29,23 +27,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '文件大小不能超过 10MB' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // 生成唯一文件名
-    const ext = file.name.split('.').pop() || 'png';
-    const hash = crypto.randomBytes(8).toString('hex');
+    // 生成唯一文件名（保留原扩展名）
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
     const dateDir = new Date().toISOString().slice(0, 7).replace('-', '/');
-    const filename = `${hash}.${ext}`;
-    const relativeDir = path.join('public', 'uploads', dateDir);
-    const absoluteDir = path.join(process.cwd(), relativeDir);
+    const pathname = `uploads/${dateDir}/${crypto.randomUUID()}.${ext}`;
 
-    await mkdir(absoluteDir, { recursive: true });
-    await writeFile(path.join(absoluteDir, filename), buffer);
+    const blob = await put(pathname, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
-    const url = `/uploads/${dateDir}/${filename}`;
-
-    return NextResponse.json({ url, success: true });
+    return NextResponse.json({ url: blob.url, success: true });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: '上传失败' }, { status: 500 });
