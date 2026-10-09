@@ -10,6 +10,7 @@ import {
   LinkOutlined,
   ProjectOutlined,
   HomeOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import LogoutButton from './LogoutButton';
 
@@ -28,6 +29,7 @@ export default function AdminLayoutClient({
     { type: 'divider' as const },
     { key: '/admin/links', icon: <LinkOutlined />, label: <Link href="/admin/links">友链管理</Link> },
     { key: '/admin/projects', icon: <ProjectOutlined />, label: <Link href="/admin/projects">项目管理</Link> },
+    { key: '/admin/about', icon: <UserOutlined />, label: <Link href="/admin/about">关于页面</Link> },
     { type: 'divider' as const },
     { key: 'blog', icon: <HomeOutlined />, label: <Link href="/" target="_blank">查看博客 →</Link> },
   ];

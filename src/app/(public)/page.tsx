@@ -8,7 +8,7 @@ export default async function HomePage({
 }) {
   const params = await searchParams;
   const page = parseInt(params.page || '1', 10);
-  const { articles, totalPages } = await getArticles(page, 10);
+  const { articles, totalPages } = await getArticles(page, 8);
   const tags = await getAllTags();
 
   return <HomeClient articles={articles} totalPages={totalPages} page={page} tags={tags} />;

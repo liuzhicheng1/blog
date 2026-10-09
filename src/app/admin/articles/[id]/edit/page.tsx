@@ -16,6 +16,7 @@ export default function EditArticlePage() {
   const [tags, setTags] = useState<string[]>([]);
   const [published, setPublished] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savedSnapshot, setSavedSnapshot] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -78,6 +79,15 @@ export default function EditArticlePage() {
         setExcerpt(data.article.excerpt || '');
         setTags(data.article.tags || []);
         setPublished(!!data.article.published);
+        setSavedSnapshot(
+          JSON.stringify({
+            title: data.article.title,
+            content: data.article.content,
+            excerpt: data.article.excerpt || '',
+            tags: data.article.tags || [],
+            published: !!data.article.published,
+          })
+        );
       } catch {
         setError('加载失败');
       } finally {
@@ -98,6 +108,12 @@ export default function EditArticlePage() {
   const removeTag = (tag: string) => {
     setTags(tags.filter((t) => t !== tag));
   };
+
+  // 表单内容与上次保存的不一致时，保存按钮才可用
+  const dirty =
+    savedSnapshot !== '' &&
+    savedSnapshot !==
+      JSON.stringify({ title, content, excerpt, tags, published });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,10 +271,10 @@ export default function EditArticlePage() {
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !dirty}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {saving ? '保存中...' : '保存修改'}
+            {saving ? '保存中...' : dirty ? '保存修改' : '暂无修改'}
           </button>
           <button
             type="button"

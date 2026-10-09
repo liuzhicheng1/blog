@@ -492,6 +492,22 @@ export async function getLinks() {
   return rows as LinkItem[];
 }
 
+// --- 关于页面（单条 Markdown 记录） ---
+
+export async function getAbout(): Promise<string> {
+  const rows = await sql`SELECT content FROM about_page ORDER BY id LIMIT 1`;
+  return (rows[0]?.content as string) ?? '';
+}
+
+export async function upsertAbout(content: string) {
+  const rows = await sql`SELECT id FROM about_page ORDER BY id LIMIT 1`;
+  if (rows.length > 0) {
+    await sql`UPDATE about_page SET content = ${content}, updated_at = NOW() WHERE id = ${rows[0].id}`;
+  } else {
+    await sql`INSERT INTO about_page (content) VALUES (${content})`;
+  }
+}
+
 export async function createLink(data: { name: string; url: string; description?: string }) {
   const { name, url, description = '' } = data;
   const maxOrder = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM links`;

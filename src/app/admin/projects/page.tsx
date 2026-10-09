@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Table, Popconfirm, message } from 'antd';
+import { Card, Form, Input, Button, Table, Popconfirm } from 'antd';
+import App from 'antd/es/app';
 import Title from 'antd/es/typography/Title';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -14,6 +15,7 @@ interface ProjectItem {
 }
 
 export default function AdminProjectsPage() {
+  const { message } = App.useApp();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [form] = Form.useForm();
@@ -28,12 +30,14 @@ export default function AdminProjectsPage() {
   useEffect(() => { loadProjects(); }, []);
 
   const addProject = async (values: { name: string; url?: string; description?: string; tech_stack?: string }) => {
+    const url = values.url?.trim() || '';
     await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: values.name.trim(),
-        url: values.url?.trim() || '',
+        // 没写协议头的网址自动补 https://（内网地址请手动带 http://）
+        url: url && !/^https?:\/\//i.test(url) ? `https://${url}` : url,
         description: values.description?.trim() || '',
         tech_stack: values.tech_stack?.trim() || '',
       }),

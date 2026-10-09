@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Table, Popconfirm, message } from 'antd';
+import { Card, Form, Input, Button, Table, Popconfirm } from 'antd';
+import App from 'antd/es/app';
 import Title from 'antd/es/typography/Title';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -13,6 +14,7 @@ interface LinkItem {
 }
 
 export default function AdminLinksPage() {
+  const { message } = App.useApp();
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [form] = Form.useForm();
@@ -27,12 +29,14 @@ export default function AdminLinksPage() {
   useEffect(() => { loadLinks(); }, []);
 
   const addLink = async (values: { name: string; url: string; description?: string }) => {
+    const url = values.url.trim();
     await fetch('/api/links', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: values.name.trim(),
-        url: values.url.trim(),
+        // 没写协议头的网址自动补 https://，避免被浏览器当成站内相对路径
+        url: /^https?:\/\//i.test(url) ? url : `https://${url}`,
         description: values.description?.trim() || '',
       }),
     });

@@ -13,8 +13,10 @@ export default async function TagPage({
   const { tag } = await params;
   const sp = await searchParams;
   const page = parseInt(sp.page || '1', 10);
-  const { articles, totalPages } = await getArticles(page, 10, tag);
+  const { articles, totalPages } = await getArticles(page, 8, tag);
   const tags = await getAllTags();
+  // URL 里是 slug（中文标签的 slug 是 post-时间戳），标题要显示标签名
+  const tagName = tags.find((t) => t.slug === tag)?.name ?? tag;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -25,7 +27,7 @@ export default async function TagPage({
               ← 返回
             </Link>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              标签：<span className="text-blue-600 dark:text-blue-400">{tag}</span>
+              标签：<span className="text-blue-600 dark:text-blue-400">{tagName}</span>
             </h1>
           </div>
 
@@ -34,7 +36,7 @@ export default async function TagPage({
               <p>该标签下暂无文章</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
               {articles.map((article) => (
                 <ArticleCard
                   key={article.id}
@@ -80,6 +82,7 @@ export default async function TagPage({
               全部标签
             </h3>
             <div className="flex flex-wrap gap-2">
+              <TagBadge name="全部" href="/" active={false} />
               {tags.map((t) => (
                 <TagBadge key={t.id} name={t.name} slug={t.slug} active={t.slug === tag} />
               ))}

@@ -5,6 +5,13 @@ import Title from 'antd/es/typography/Title';
 import Paragraph from 'antd/es/typography/Paragraph';
 import type { ProjectItem } from '@/lib/db';
 
+// 没写协议头的网址自动补 https://，避免被浏览器当成站内相对路径
+function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export default function ProjectsClient({ projects }: { projects: ProjectItem[] }) {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
@@ -16,12 +23,12 @@ export default function ProjectsClient({ projects }: { projects: ProjectItem[] }
       {projects.length === 0 ? (
         <Empty description="暂无项目" />
       ) : (
-        <Space direction="vertical" size={16} className="w-full">
+        <Space orientation="vertical" size={16} className="w-full">
           {projects.map((project) => (
             <Card key={project.id}>
               <Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
                 {project.url ? (
-                  <a href={project.url} target="_blank" rel="noopener noreferrer">
+                  <a href={normalizeUrl(project.url)} target="_blank" rel="noopener noreferrer">
                     {project.name}
                   </a>
                 ) : (

@@ -6,6 +6,13 @@ import Paragraph from 'antd/es/typography/Paragraph';
 import Text from 'antd/es/typography/Text';
 import type { LinkItem } from '@/lib/db';
 
+// 没写协议头的网址自动补 https://，避免被浏览器当成站内相对路径
+function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export default function LinksClient({ links }: { links: LinkItem[] }) {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">

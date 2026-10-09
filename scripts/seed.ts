@@ -77,6 +77,14 @@ async function main() {
     );
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS about_page (
+      id SERIAL PRIMARY KEY,
+      content TEXT DEFAULT '',
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `;
+
   console.log('✅ Database tables created');
 
   // Create admin user
