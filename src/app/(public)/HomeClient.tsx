@@ -43,7 +43,7 @@ export default function HomeClient({
               </Link>
             </Empty>
           ) : (
-            <Space direction="vertical" size={16} className="w-full">
+            <Space orientation="vertical" size={16} className="w-full">
               {articles.map((article) => (
                 <ArticleCard
                   key={article.id}
