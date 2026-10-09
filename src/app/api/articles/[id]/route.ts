@@ -35,8 +35,10 @@ export async function PUT(
       return NextResponse.json({ error: '文章不存在' }, { status: 404 });
     }
     return NextResponse.json({ article });
-  } catch {
-    return NextResponse.json({ error: '更新文章失败' }, { status: 500 });
+  } catch (error) {
+    console.error('Update article error:', error);
+    const detail = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: `更新文章失败：${detail}` }, { status: 500 });
   }
 }
 

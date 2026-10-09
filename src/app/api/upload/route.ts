@@ -8,6 +8,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '请先登录' }, { status: 401 });
   }
 
+  // 线上走 OIDC（BLOB_STORE_ID + VERCEL_OIDC_TOKEN），本地走 BLOB_READ_WRITE_TOKEN
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
+    console.error('Upload error: 未检测到 Blob 凭证（BLOB_READ_WRITE_TOKEN 或 BLOB_STORE_ID）');
+    return NextResponse.json({ error: '服务端未配置 Blob 存储' }, { status: 500 });
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -39,7 +45,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: blob.url, success: true });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error('Upload error:', error);
-    return NextResponse.json({ error: '上传失败' }, { status: 500 });
+    return NextResponse.json({ error: `上传失败：${message}` }, { status: 500 });
   }
 }

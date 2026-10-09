@@ -22,16 +22,21 @@ export default function EditArticlePage() {
 
   const insertAtCursor = useCallback((text: string) => {
     const el = textareaRef.current;
-    if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const newContent = content.slice(0, start) + text + content.slice(end);
-    setContent(newContent);
+    // 拿不到输入框时兜底追加到末尾，避免静默失败
+    if (!el) {
+      setContent((prev) => prev + text);
+      return;
+    }
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    setContent((prev) => prev.slice(0, start) + text + prev.slice(end));
+    // 聚焦并把光标移到插入内容之后，浏览器会自动滚动到该位置
     setTimeout(() => {
       el.focus();
-      el.selectionStart = el.selectionEnd = start + text.length;
+      const pos = start + text.length;
+      el.setSelectionRange(pos, pos);
     }, 0);
-  }, [content]);
+  }, []);
 
   const handleImageUploaded = useCallback((url: string) => {
     insertAtCursor(`![image](${url})`);

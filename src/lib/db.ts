@@ -275,15 +275,32 @@ export async function createArticle(data: {
 
   for (const tagName of tags) {
     const tagSlug = slugify(tagName);
-    const existingTag = await sql`SELECT id FROM tags WHERE slug = ${tagSlug}`;
+    // 中文标签的 slug 每次都不同（时间戳兜底），必须先按 name 查，
+    // 否则会重复插入同名标签，撞上 name 的唯一约束导致创建失败
+    let rows = await sql`SELECT id FROM tags WHERE name = ${tagName}`;
+    if (rows.length === 0) {
+      rows = await sql`SELECT id FROM tags WHERE slug = ${tagSlug}`;
+    }
     let tagId: number;
-    if (existingTag.length > 0) {
-      tagId = existingTag[0].id;
+    if (rows.length > 0) {
+      tagId = rows[0].id;
     } else {
-      const newTag = await sql`
-        INSERT INTO tags (name, slug) VALUES (${tagName}, ${tagSlug}) RETURNING id
+      // slug 也可能被占用（多个中文标签同毫秒生成相同时间戳），冲突时加随机后缀
+      let finalSlug = tagSlug;
+      const slugRows = await sql`SELECT id FROM tags WHERE slug = ${finalSlug}`;
+      if (slugRows.length > 0) {
+        finalSlug = `${tagSlug}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+      const inserted = await sql`
+        INSERT INTO tags (name, slug) VALUES (${tagName}, ${finalSlug})
+        ON CONFLICT (name) DO NOTHING RETURNING id
       `;
-      tagId = newTag[0].id;
+      if (inserted.length > 0) {
+        tagId = inserted[0].id;
+      } else {
+        const again = await sql`SELECT id FROM tags WHERE name = ${tagName}`;
+        tagId = again[0].id;
+      }
     }
     await sql`
       INSERT INTO article_tags (article_id, tag_id) VALUES (${articleId}, ${tagId})
@@ -332,15 +349,32 @@ export async function updateArticle(
     await sql`DELETE FROM article_tags WHERE article_id = ${id}`;
     for (const tagName of data.tags) {
       const tagSlug = slugify(tagName);
-      const existingTag = await sql`SELECT id FROM tags WHERE slug = ${tagSlug}`;
+      // 中文标签的 slug 每次都不同（时间戳兜底），必须先按 name 查，
+      // 否则会重复插入同名标签，撞上 name 的唯一约束导致更新失败
+      let rows = await sql`SELECT id FROM tags WHERE name = ${tagName}`;
+      if (rows.length === 0) {
+        rows = await sql`SELECT id FROM tags WHERE slug = ${tagSlug}`;
+      }
       let tagId: number;
-      if (existingTag.length > 0) {
-        tagId = existingTag[0].id;
+      if (rows.length > 0) {
+        tagId = rows[0].id;
       } else {
-        const newTag = await sql`
-          INSERT INTO tags (name, slug) VALUES (${tagName}, ${tagSlug}) RETURNING id
+        // slug 也可能被占用（多个中文标签同毫秒生成相同时间戳），冲突时加随机后缀
+        let finalSlug = tagSlug;
+        const slugRows = await sql`SELECT id FROM tags WHERE slug = ${finalSlug}`;
+        if (slugRows.length > 0) {
+          finalSlug = `${tagSlug}-${Math.random().toString(36).slice(2, 8)}`;
+        }
+        const inserted = await sql`
+          INSERT INTO tags (name, slug) VALUES (${tagName}, ${finalSlug})
+          ON CONFLICT (name) DO NOTHING RETURNING id
         `;
-        tagId = newTag[0].id;
+        if (inserted.length > 0) {
+          tagId = inserted[0].id;
+        } else {
+          const again = await sql`SELECT id FROM tags WHERE name = ${tagName}`;
+          tagId = again[0].id;
+        }
       }
       await sql`
         INSERT INTO article_tags (article_id, tag_id) VALUES (${id}, ${tagId})
