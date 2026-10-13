@@ -2,15 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthFromCookie } from '@/lib/auth';
 import { getArticleById, updateArticle, deleteArticle } from '@/lib/db';
 
-// GET /api/articles/[id] — public, get single article (published only)
+// GET /api/articles/[id] — 公开接口，仅返回已发布文章；草稿仅管理员可读（供后台编辑）
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const article = await getArticleById(parseInt(id, 10));
-  if (!article || !article.published) {
+  if (!article) {
     return NextResponse.json({ error: '文章不存在' }, { status: 404 });
+  }
+  // 草稿：未登录一律 404，登录的管理员可读
+  if (!article.published) {
+    const user = await getAuthFromCookie();
+    if (!user) {
+      return NextResponse.json({ error: '文章不存在' }, { status: 404 });
+    }
   }
   return NextResponse.json({ article });
 }
