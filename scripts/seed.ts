@@ -61,8 +61,18 @@ async function main() {
       url TEXT NOT NULL,
       description TEXT DEFAULT '',
       sort_order INTEGER DEFAULT 0,
+      approved BOOLEAN NOT NULL DEFAULT true,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+  `;
+
+  // 访客申请友链需要审核标记，老表补列（已存在的友链默认视为已上架）
+  await sql`
+    ALTER TABLE links ADD COLUMN IF NOT EXISTS approved BOOLEAN NOT NULL DEFAULT true;
+  `;
+  // 拒绝标记：不通过的申请保留数据，不直接删除
+  await sql`
+    ALTER TABLE links ADD COLUMN IF NOT EXISTS rejected BOOLEAN NOT NULL DEFAULT false;
   `;
 
   await sql`

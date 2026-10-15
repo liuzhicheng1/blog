@@ -7,7 +7,7 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 transition-colors">
       {/* 左侧装饰图（暂时隐藏，需要时取消注释；图片在 public/side-bg.jpg）
       <div
         aria-hidden
@@ -44,8 +44,8 @@ export default function PublicLayout({
         </div>
       </header>
 
-      {/* Main content */}
-      <main>{children}</main>
+      {/* Main content：flex-1 撑满剩余空间，让 Footer 始终贴住视口底部 */}
+      <main className="flex-1">{children}</main>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-800 mt-16 transition-colors">

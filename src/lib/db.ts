@@ -1,3 +1,8 @@
+/*
+ * 数据库查询边界层：SQL 返回的行结构在运行时才确定，
+ * 本文件统一用 any 承接查询结果，属有意为之，豁免 no-explicit-any 规则。
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { neon } from '@neondatabase/serverless';
 
 let _sql: any = null;
@@ -482,12 +487,23 @@ export interface LinkItem {
   url: string;
   description: string;
   sort_order: number;
+  approved: boolean;
+  rejected: boolean;
   created_at: string;
 }
 
 export async function getLinks() {
   const rows = await sql`
-    SELECT * FROM links ORDER BY sort_order ASC, created_at DESC
+    SELECT * FROM links WHERE approved = true ORDER BY sort_order ASC, created_at DESC
+  `;
+  return rows as LinkItem[];
+}
+
+// 后台管理用：包含待审核、已拒绝的友链（已上架在前，待审核次之，已拒绝最后）
+export async function getAllLinksForAdmin() {
+  const rows = await sql`
+    SELECT * FROM links
+    ORDER BY approved DESC, rejected ASC, sort_order ASC, created_at DESC
   `;
   return rows as LinkItem[];
 }
@@ -512,20 +528,49 @@ export async function createLink(data: { name: string; url: string; description?
   const { name, url, description = '' } = data;
   const maxOrder = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM links`;
   const result = await sql`
-    INSERT INTO links (name, url, description, sort_order)
-    VALUES (${name}, ${url}, ${description}, ${maxOrder[0].next_order})
+    INSERT INTO links (name, url, description, sort_order, approved)
+    VALUES (${name}, ${url}, ${description}, ${maxOrder[0].next_order}, true)
     RETURNING id
   `;
   return result[0].id as number;
 }
 
-export async function updateLink(id: number, data: { name?: string; url?: string; description?: string; sort_order?: number }) {
+// 访客自助申请：默认待审核，不直接公开
+export async function createLinkApplication(data: { name: string; url: string; description?: string }) {
+  const { name, url, description = '' } = data;
+  // 同网址重复申请（含待审核中的）直接忽略
+  const exists = await sql`SELECT id FROM links WHERE url = ${url} LIMIT 1`;
+  if (exists.length > 0) {
+    return { id: exists[0].id as number, duplicated: true };
+  }
+  const result = await sql`
+    INSERT INTO links (name, url, description, sort_order, approved)
+    VALUES (${name}, ${url}, ${description}, 0, false)
+    RETURNING id
+  `;
+  return { id: result[0].id as number, duplicated: false };
+}
+
+// 审核通过：上架展示（已拒绝的也可恢复通过）
+export async function approveLink(id: number) {
+  const maxOrder = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM links WHERE approved = true`;
+  await sql`UPDATE links SET approved = true, rejected = false, sort_order = ${maxOrder[0].next_order} WHERE id = ${id}`;
+}
+
+// 审核不通过：保留数据，仅标记拒绝（前台不展示）
+export async function rejectLink(id: number) {
+  await sql`UPDATE links SET rejected = true WHERE id = ${id}`;
+}
+
+export async function updateLink(id: number, data: { name?: string; url?: string; description?: string; sort_order?: number; approved?: boolean; rejected?: boolean }) {
   const sets: string[] = [];
   const values: any[] = [];
   if (data.name !== undefined) { sets.push('name'); values.push(data.name); }
   if (data.url !== undefined) { sets.push('url'); values.push(data.url); }
   if (data.description !== undefined) { sets.push('description'); values.push(data.description); }
   if (data.sort_order !== undefined) { sets.push('sort_order'); values.push(data.sort_order); }
+  if (data.approved !== undefined) { sets.push('approved'); values.push(data.approved); }
+  if (data.rejected !== undefined) { sets.push('rejected'); values.push(data.rejected); }
   if (sets.length === 0) return;
   const setClause = sets.map((s, i) => `${s} = $${i + 1}`).join(', ');
   await getSql().query(`UPDATE links SET ${setClause} WHERE id = $${sets.length + 1}`, [...values, id]);
