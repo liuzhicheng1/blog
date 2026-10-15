@@ -5,6 +5,9 @@ import CommentSection from '@/components/CommentSection';
 import TagBadge from '@/components/TagBadge';
 import { getArticleBySlug } from '@/lib/db';
 
+// 文章可随时编辑，避免详情页被 Full Route Cache 缓存后内容不更新
+export const dynamic = 'force-dynamic';
+
 export default async function ArticlePage({
   params,
 }: {
